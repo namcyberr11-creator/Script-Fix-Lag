@@ -1,97 +1,110 @@
--- VUKHOA FIX LAG: HARD-FIX BUTTON (MOBILE OPTIMIZED)
+-- VUKHOA FIX LAG: SUPER-FIX (CHẮC CHẮN BẬT ĐƯỢC)
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local lp = Players.LocalPlayer
 
--- Xóa UI cũ nếu có
-if CoreGui:FindFirstChild("VuKhoaFixLag_HardFix") then
-    CoreGui.VuKhoaFixLag_HardFix:Destroy()
+-- Xóa sạch UI cũ để không bị kẹt nút
+for _, oldUI in pairs(CoreGui:GetChildren()) do
+    if oldUI.Name == "VuKhoaUltimateUI" or oldUI.Name:find("VuKhoa") then
+        oldUI:Destroy()
+    end
 end
 
--- 1. GIAO DIỆN CHÍNH
+-- 1. TẠO GIAO DIỆN
 local ScreenGui = Instance.new("ScreenGui", CoreGui)
-ScreenGui.Name = "VuKhoaFixLag_HardFix"
+ScreenGui.Name = "VuKhoaUltimateUI"
 ScreenGui.ResetOnSpawn = false
-ScreenGui.IgnoreGuiInset = true -- Tránh bị lệch do thanh trạng thái
+ScreenGui.IgnoreGuiInset = true
 
--- Nhãn FPS Siêu To (Màu Đen Viền Trắng)
+-- Nhãn FPS Siêu To
 local Label = Instance.new("TextLabel", ScreenGui)
 Label.BackgroundTransparency = 1
-Label.Position = UDim2.new(0.5, -250, 0.02, 0)
+Label.Position = UDim2.new(0.5, -250, 0.01, 0)
 Label.Size = UDim2.new(0, 500, 0, 100)
 Label.Font = Enum.Font.SourceSansBold
 Label.TextSize = 55
 Label.TextColor3 = Color3.new(0, 0, 0)
 Label.TextStrokeColor3 = Color3.new(1, 1, 1)
 Label.TextStrokeTransparency = 0 
-Label.ZIndex = 10
 
 RunService.RenderStepped:Connect(function(dt)
     Label.Text = "VuKhoa FixLag\nFPS: " .. math.floor(1/dt)
 end)
 
--- 2. NÚT BẤM SIÊU NHẠY (DÙNG MOUSEBUTTON1DOWN)
-local ToggleBtn = Instance.new("TextButton", ScreenGui)
+-- 2. NÚT BẤM HÌNH ẢNH (KÉO THẢ ĐƯỢC)
+local MapHidden = true -- Mặc định vào là BẬT luôn
+local ToggleBtn = Instance.new("ImageButton", ScreenGui)
 ToggleBtn.Name = "MainButton"
-ToggleBtn.Size = UDim2.new(0, 160, 0, 70)
-ToggleBtn.Position = UDim2.new(0, 20, 0.4, 0)
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
-ToggleBtn.Font = Enum.Font.SourceSansBold
-ToggleBtn.TextSize = 25
-ToggleBtn.TextColor3 = Color3.new(1, 1, 1)
-ToggleBtn.Text = "Ẩn Map: TẮT"
-ToggleBtn.ZIndex = 20 -- Đảm bảo nút luôn nằm trên cùng
+ToggleBtn.Size = UDim2.new(0, 90, 0, 90)
+ToggleBtn.Position = UDim2.new(0, 20, 0.45, 0)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 0) -- Màu xanh (Bật)
 ToggleBtn.Active = true
+ToggleBtn.Draggable = true 
+ToggleBtn.ZIndex = 100
+
+-- Dán ID ảnh Tết của bạn vào đây (Ví dụ mình để icon mặc định)
+ToggleBtn.Image = "rbxassetid://123066218559720" 
 
 local UICorner = Instance.new("UICorner", ToggleBtn)
-UICorner.CornerRadius = UDim.new(0, 12)
+UICorner.CornerRadius = UDim.new(0, 20)
 
--- 3. CHỨC NĂNG ẨN MAP (80% TRANSPARENCY)
-local MapHidden = false
-local function ApplyMap()
+-- Chữ trạng thái
+local Status = Instance.new("TextLabel", ToggleBtn)
+Status.Size = UDim2.new(1, 0, 1, 0)
+Status.BackgroundTransparency = 1
+Status.Text = "BẬT"
+Status.Font = Enum.Font.SourceSansBold
+Status.TextSize = 22
+Status.TextColor3 = Color3.new(1, 1, 1)
+Status.TextStrokeTransparency = 0.5
+
+-- 3. HÀM QUÉT MAP (ANTI-LAG)
+local function ApplyMapFix()
     for _, v in pairs(workspace:GetDescendants()) do
         if v:IsA("BasePart") and not v:IsDescendantOf(lp.Character) then
-            local isMap = v.Name == "Tree" or v.Name == "Leaf" or v.Name == "Bush" or v:IsA("MeshPart") or v:IsA("UnionOperation")
-            if isMap then
+            local n = v.Name:lower()
+            -- Xóa cây và cỏ vĩnh viễn
+            if n:find("tree") or n:find("leaf") or n:find("bush") or n:find("grass") then
+                v:Destroy()
+            -- Ẩn Map 80%
+            elseif v:IsA("MeshPart") or v:IsA("UnionOperation") or n:find("island") then
                 v.Transparency = MapHidden and 0.8 or 0
             end
         end
     end
 end
 
--- SỬA LỖI KHÔNG BẬT ĐƯỢC: Dùng MouseButton1Down cho Mobile
-ToggleBtn.MouseButton1Down:Connect(function()
-    MapHidden = not MapHidden
-    if MapHidden then
-        ToggleBtn.Text = "Ẩn Map: BẬT"
-        ToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
-    else
-        ToggleBtn.Text = "Ẩn Map: TẮT"
-        ToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
-    end
-    ApplyMap()
-end)
+-- Chạy ngay lập tức khi dán script
+task.spawn(ApplyMapFix)
 
--- 4. XÓA SỐ DAME (LUÔN TỰ ĐỘNG CHẠY)
-local function AutoClean(v)
-    -- Xóa số dame (BillboardGui)
-    if v:IsA("BillboardGui") or v.Name == "DamageIndicator" or v.Name:find("Damage") then
+-- 4. FIX LỖI KHÔNG BẬT ĐƯỢC (Dùng cả Click và Down)
+local function Toggle()
+    MapHidden = not MapHidden
+    ToggleBtn.BackgroundColor3 = MapHidden and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(180, 0, 0)
+    Status.Text = MapHidden and "BẬT" or "TẮT"
+    ApplyMapFix()
+end
+
+ToggleBtn.MouseButton1Down:Connect(Toggle)
+
+-- 5. XÓA DAME (AUTO)
+local function Clean(v)
+    if v:IsA("BillboardGui") or v.Name:find("Damage") or v.Name == "DamageIndicator" then
         v:Destroy()
     end
-    -- Tắt hiệu ứng chiêu thức rác
-    if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") then
+    if v:IsA("ParticleEmitter") or v:IsA("Trail") then
         v.Enabled = false
     end
 end
 
 workspace.DescendantAdded:Connect(function(v)
     task.wait()
-    AutoClean(v)
+    Clean(v)
 end)
 
--- Dọn dẹp lúc mới bật script
+-- Tối ưu Lighting ban đầu
 game:GetService("Lighting").GlobalShadows = false
-for _, v in pairs(workspace:GetDescendants()) do AutoClean(v) end
+for _, v in pairs(workspace:GetDescendants()) do Clean(v) end
 
-print("VuKhoa FixLag: Hard-Fix cho Mobile thanh cong!")
+print("VuKhoa FixLag: SUPER-FIX LOADED!")
