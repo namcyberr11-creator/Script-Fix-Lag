@@ -1,87 +1,112 @@
--- VUKHOA FIX LAG: HIDE 95% LEAVES & ROCKS (⭕/❌ EDITION)
-local RunService = game:GetService("RunService")
-local CoreGui = game:GetService("CoreGui")
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local lp = Players.LocalPlayer
+-- VUKHOA FIX LAG: DELAY 1.8S - 95% MAP - BUTTON LEFT
+local p = game.Players.LocalPlayer
+local pgui = p:WaitForChild("PlayerGui")
 
--- 1. ÉP CHỌN MARINE
-task.spawn(function()
-    while not lp.Team do
-        pcall(function() ReplicatedStorage.Remotes.CommF_:InvokeServer("SetTeam", "Marines") end)
-        task.wait(1)
-    end
-end)
+-- 1. DỌN UI CŨ
+if pgui:FindFirstChild("VuKhoa_18s_95") then pgui.VuKhoa_18s_95:Destroy() end
 
--- Xóa UI cũ
-for _, v in pairs(CoreGui:GetChildren()) do
-    if v.Name:find("VuKhoa") then v:Destroy() end
-end
+-- 2. TẠO GIAO DIỆN (NÚT TRÒN BÊN TRÁI - BẢNG BÊN PHẢI)
+local sg = Instance.new("ScreenGui", pgui)
+sg.Name = "VuKhoa_18s_95"
+sg.ResetOnSpawn = false
+sg.DisplayOrder = 999 
 
--- 2. TẠO GIAO DIỆN NÚT BẤM
-local ScreenGui = Instance.new("ScreenGui", CoreGui)
-ScreenGui.Name = "VuKhoa_Alpha_UI"
-ScreenGui.DisplayOrder = 9999
+local main = Instance.new("Frame", sg)
+main.Size = UDim2.new(0, 230, 0, 85)
+main.Position = UDim2.new(0.5, -115, 0, 70)
+main.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+main.BackgroundTransparency = 0.2
+main.Active = true
+main.Draggable = true 
 
-local MapHidden = true
+local corner = Instance.new("UICorner", main)
+corner.CornerRadius = UDim.new(0, 15)
 
-local ToggleBtn = Instance.new("ImageButton", ScreenGui)
-ToggleBtn.Size = UDim2.new(0, 85, 0, 85)
-ToggleBtn.Position = UDim2.new(0, 15, 0.4, 0)
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-ToggleBtn.Draggable = true 
-ToggleBtn.Active = true
-ToggleBtn.Image = "rbxassetid://6031068433"
+local stroke = Instance.new("UIStroke", main)
+stroke.Thickness = 2
+stroke.Color = Color3.fromRGB(0, 255, 255)
 
-local UICorner = Instance.new("UICorner", ToggleBtn)
-UICorner.CornerRadius = UDim.new(0, 20)
+-- NÚT BẤM TRÒN (BÊN TRÁI)
+local active = false
+local btn = Instance.new("TextButton", main)
+btn.Size = UDim2.new(0, 65, 0, 65)
+btn.Position = UDim2.new(0, 10, 0.5, -32.5)
+btn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+btn.Text = "❌"
+btn.TextSize = 35
+btn.TextColor3 = Color3.new(1, 1, 1)
 
-local StatusLabel = Instance.new("TextLabel", ToggleBtn)
-StatusLabel.Size = UDim2.new(1, 0, 1, 0)
-StatusLabel.BackgroundTransparency = 1
-StatusLabel.Text = "⭕"
-StatusLabel.TextSize = 50
-StatusLabel.TextColor3 = Color3.new(1, 1, 1)
+local btnCorner = Instance.new("UICorner", btn)
+btnCorner.CornerRadius = UDim.new(1, 0)
 
--- 3. HÀM ẨN 95% LÁ CÂY VÀ ĐÁ
-local function Apply95PercentFix()
-    local terrain = workspace:FindFirstChildOfClass("Terrain")
-    if terrain then terrain.WaterTransparency = MapHidden and 1 or 0 end
+local btnStroke = Instance.new("UIStroke", btn)
+btnStroke.Thickness = 3
+btnStroke.Color = Color3.fromRGB(0, 255, 0)
 
+-- CHỮ VÀ FPS (BÊN PHẢI)
+local title = Instance.new("TextLabel", main)
+title.Size = UDim2.new(0, 140, 0, 30)
+title.Position = UDim2.new(0, 85, 0, 12)
+title.Text = "Vũ Khoa Fix Lag"
+title.TextColor3 = Color3.fromRGB(0, 255, 255)
+title.TextSize = 17
+title.Font = Enum.Font.SourceSansBold
+title.BackgroundTransparency = 1
+title.TextXAlignment = Enum.TextXAlignment.Left
+
+local fpsLabel = Instance.new("TextLabel", main)
+fpsLabel.Size = UDim2.new(0, 140, 0, 30)
+fpsLabel.Position = UDim2.new(0, 85, 0, 42)
+fpsLabel.Text = "FPS: ..."
+fpsLabel.TextColor3 = Color3.new(1, 1, 1)
+fpsLabel.TextSize = 18
+fpsLabel.BackgroundTransparency = 1
+fpsLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- 3. HÀM ẨN 95% MAP
+local function Apply95Clean()
+    pcall(function()
+        workspace:FindFirstChildOfClass("Terrain").WaterTransparency = active and 1 or 0
+    end)
     for _, v in pairs(workspace:GetDescendants()) do
-        if v:IsA("BasePart") and not v:IsDescendantOf(lp.Character) then
-            local n = v.Name:lower()
-            local isLeaf = n:find("leaf") or n:find("leaves") or n:find("tree")
-            local isRock = n:find("rock") or n:find("stone") or n:find("boulder")
-            
-            -- Quét màu lá và đá từ ảnh bạn gửi
-            local isTargetColor = 
-                (v.Color == Color3.fromRGB(106, 127, 63)) or 
-                (v.Color == Color3.fromRGB(58, 92, 53)) or  
-                (v.Color == Color3.fromRGB(111, 111, 111))
-
-            if isLeaf or isRock or isTargetColor then
-                v.Transparency = MapHidden and 0.95 or 0
-            elseif v:IsA("MeshPart") or v:IsA("UnionOperation") or n:find("island") then
-                v.Transparency = MapHidden and 0.95 or 0
+        if v:IsA("BasePart") or v:IsA("MeshPart") or v:IsA("UnionOperation") then
+            if not v:IsDescendantOf(p.Character) then
+                if v.Name ~= "Base" and v.Name ~= "RootPart" then
+                    v.Transparency = active and 0.95 or 0
+                end
             end
+        elseif v:IsA("Decal") or v:IsA("Texture") then
+            v.Transparency = active and 0.95 or 0
         end
     end
 end
 
-task.spawn(Apply95PercentFix)
-
--- 4. XỬ LÝ CLICK
-ToggleBtn.MouseButton1Click:Connect(function()
-    MapHidden = not MapHidden
-    if MapHidden then
-        ToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-        StatusLabel.Text = "⭕"
-    else
-        ToggleBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-        StatusLabel.Text = "❌"
-    end
-    Apply95PercentFix()
+-- 4. LOGIC FPS & CLICK
+game:GetService("RunService").RenderStepped:Connect(function(dt)
+    fpsLabel.Text = "FPS: " .. math.floor(1/dt)
 end)
 
-print("VuKhoa FixLag: San sang!")
+btn.MouseButton1Click:Connect(function()
+    active = not active
+    btn.Text = active and "⭕" or "❌"
+    btn.BackgroundColor3 = active and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+    Apply95Clean()
+end)
+
+-- 5. AUTO CHỌN MARINE & ĐỢI ĐÚNG 1.8S TỰ BẬT
+task.spawn(function()
+    local r = game:GetService("ReplicatedStorage")
+    while not p.Team or p.Team.Name ~= "Marines" do
+        pcall(function()
+            r.Remotes.CommF_:InvokeServer("SetTeam", "Marines")
+        end)
+        task.wait(0.5)
+    end
+    
+    task.wait(1.8) -- Thay đổi thời gian chờ thành 1.8 giây theo yêu cầu của bạn
+    
+    active = true
+    btn.Text = "⭕"
+    btn.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+    Apply95Clean()
+end)
