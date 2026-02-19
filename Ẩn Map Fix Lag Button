@@ -53,4 +53,71 @@ t.TextSize = 13
 t.Font = Enum.Font.SourceSansBold
 t.Parent = f
 
--- 3. LOG
+-- 3. LOGIC ẨN MAP
+local active = true
+
+local function SetInvisible(v)
+    if not active then return end
+    pcall(function()
+        if v:IsA("BasePart") and not v:IsDescendantOf(p.Character) then
+            -- Giữ lại quái/NPC
+            local isNPC = v.Parent:FindFirstChild("Humanoid") or (v.Parent.Parent and v.Parent.Parent:FindFirstChild("Humanoid"))
+            if not isNPC then
+                v.Transparency = 1
+                v.CastShadow = false
+            end
+        elseif v:IsA("Decal") or v:IsA("Texture") or v:IsA("ParticleEmitter") then
+            v.Enabled = false
+        end
+    end)
+end
+
+-- Tự động check khi có đảo mới
+workspace.DescendantAdded:Connect(function(v)
+    if active then SetInvisible(v) end
+end)
+
+-- Quét toàn bộ map định kỳ
+task.spawn(function()
+    while true do
+        if active then
+            for _, v in pairs(workspace:GetDescendants()) do
+                if v:IsA("BasePart") and v.Transparency < 1 then SetInvisible(v) end
+            end
+        end
+        task.wait(2)
+    end
+end)
+
+-- 4. ĐIỀU KHIỂN & ĐỔI MÀU VIỀN
+b.MouseButton1Click:Connect(function()
+    active = not active
+    if active then
+        b.BackgroundColor3 = Color3.new(0, 1, 0) -- Nút Xanh
+        stroke.Color = Color3.new(1, 0, 0)        -- Viền Đỏ
+        for _, v in pairs(workspace:GetDescendants()) do SetInvisible(v) end
+    else
+        b.BackgroundColor3 = Color3.new(1, 0, 0) -- Nút Đỏ
+        stroke.Color = Color3.new(0, 1, 0)        -- Viền Xanh
+        -- Hiện lại map
+        for _, v in pairs(workspace:GetDescendants()) do
+            if v:IsA("BasePart") and not v:IsDescendantOf(p.Character) then v.Transparency = 0 end
+        end
+    end
+end)
+
+-- FPS Counter
+RunService.RenderStepped:Connect(function(dt)
+    t.Text = "Vũ Khoa Fix Lag\nFPS: " .. math.floor(1/dt)
+end)
+
+-- 5. AUTO JOIN MARINE & START
+task.spawn(function()
+    local r = game:GetService("ReplicatedStorage")
+    while not p.Team or p.Team.Name ~= "Marines" do
+        pcall(function() r.Remotes.CommF_:InvokeServer("SetTeam", "Marines") end)
+        task.wait(0.5)
+    end
+    task.wait(1.8)
+    for _, v in pairs(workspace:GetDescendants()) do SetInvisible(v) end
+end)
