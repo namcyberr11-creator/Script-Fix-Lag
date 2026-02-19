@@ -1,19 +1,19 @@
--- VUKHOA FIX LAG: AUTO ENABLE ON START + BIG UI + NO DAMAGE
+-- VUKHOA FIX LAG: HARD-FIX BUTTON (MOBILE OPTIMIZED)
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local lp = Players.LocalPlayer
 
 -- Xóa UI cũ nếu có
-if CoreGui:FindFirstChild("VuKhoaFixLag_AutoEnable") then
-    CoreGui.VuKhoaFixLag_AutoEnable:Destroy()
+if CoreGui:FindFirstChild("VuKhoaFixLag_HardFix") then
+    CoreGui.VuKhoaFixLag_HardFix:Destroy()
 end
 
 -- 1. GIAO DIỆN CHÍNH
 local ScreenGui = Instance.new("ScreenGui", CoreGui)
-ScreenGui.Name = "VuKhoaFixLag_AutoEnable"
+ScreenGui.Name = "VuKhoaFixLag_HardFix"
 ScreenGui.ResetOnSpawn = false
-ScreenGui.IgnoreGuiInset = true
+ScreenGui.IgnoreGuiInset = true -- Tránh bị lệch do thanh trạng thái
 
 -- Nhãn FPS Siêu To (Màu Đen Viền Trắng)
 local Label = Instance.new("TextLabel", ScreenGui)
@@ -31,11 +31,67 @@ RunService.RenderStepped:Connect(function(dt)
     Label.Text = "VuKhoa FixLag\nFPS: " .. math.floor(1/dt)
 end)
 
--- 2. NÚT BẤM (MẶC ĐỊNH LÀ BẬT KHI CHẠY SCR)
-local MapHidden = true -- ĐẶT LÀ TRUE ĐỂ TỰ ĐỘNG BẬT
-
+-- 2. NÚT BẤM SIÊU NHẠY (DÙNG MOUSEBUTTON1DOWN)
 local ToggleBtn = Instance.new("TextButton", ScreenGui)
 ToggleBtn.Name = "MainButton"
 ToggleBtn.Size = UDim2.new(0, 160, 0, 70)
 ToggleBtn.Position = UDim2.new(0, 20, 0.4, 0)
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 0) -- MÀU XANH (ĐANG BẬT
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
+ToggleBtn.Font = Enum.Font.SourceSansBold
+ToggleBtn.TextSize = 25
+ToggleBtn.TextColor3 = Color3.new(1, 1, 1)
+ToggleBtn.Text = "Ẩn Map: TẮT"
+ToggleBtn.ZIndex = 20 -- Đảm bảo nút luôn nằm trên cùng
+ToggleBtn.Active = true
+
+local UICorner = Instance.new("UICorner", ToggleBtn)
+UICorner.CornerRadius = UDim.new(0, 12)
+
+-- 3. CHỨC NĂNG ẨN MAP (80% TRANSPARENCY)
+local MapHidden = false
+local function ApplyMap()
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:IsA("BasePart") and not v:IsDescendantOf(lp.Character) then
+            local isMap = v.Name == "Tree" or v.Name == "Leaf" or v.Name == "Bush" or v:IsA("MeshPart") or v:IsA("UnionOperation")
+            if isMap then
+                v.Transparency = MapHidden and 0.8 or 0
+            end
+        end
+    end
+end
+
+-- SỬA LỖI KHÔNG BẬT ĐƯỢC: Dùng MouseButton1Down cho Mobile
+ToggleBtn.MouseButton1Down:Connect(function()
+    MapHidden = not MapHidden
+    if MapHidden then
+        ToggleBtn.Text = "Ẩn Map: BẬT"
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+    else
+        ToggleBtn.Text = "Ẩn Map: TẮT"
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+    end
+    ApplyMap()
+end)
+
+-- 4. XÓA SỐ DAME (LUÔN TỰ ĐỘNG CHẠY)
+local function AutoClean(v)
+    -- Xóa số dame (BillboardGui)
+    if v:IsA("BillboardGui") or v.Name == "DamageIndicator" or v.Name:find("Damage") then
+        v:Destroy()
+    end
+    -- Tắt hiệu ứng chiêu thức rác
+    if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") then
+        v.Enabled = false
+    end
+end
+
+workspace.DescendantAdded:Connect(function(v)
+    task.wait()
+    AutoClean(v)
+end)
+
+-- Dọn dẹp lúc mới bật script
+game:GetService("Lighting").GlobalShadows = false
+for _, v in pairs(workspace:GetDescendants()) do AutoClean(v) end
+
+print("VuKhoa FixLag: Hard-Fix cho Mobile thanh cong!")
