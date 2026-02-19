@@ -1,0 +1,56 @@
+-- VUKHOA FIX LAG: GHOST MAP - COLOR BORDER EDITION
+local p = game.Players.LocalPlayer
+local pgui = p:WaitForChild("PlayerGui")
+local RunService = game:GetService("RunService")
+
+-- 1. XÓA UI CŨ
+if pgui:FindFirstChild("VuKhoa_GhostMode") then pgui.VuKhoa_GhostMode:Destroy() end
+
+-- 2. TẠO GIAO DIỆN
+local sg = Instance.new("ScreenGui")
+sg.Name = "VuKhoa_GhostMode"
+sg.ResetOnSpawn = false
+sg.IgnoreGuiInset = true
+sg.Parent = pgui
+
+local f = Instance.new("Frame")
+f.Size = UDim2.new(0, 160, 0, 70)
+f.Position = UDim2.new(0.5, -80, 0.15, 0)
+f.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+f.BackgroundTransparency = 0.3
+f.Active = true
+f.Draggable = true
+f.Parent = sg
+
+local corner = Instance.new("UICorner", f)
+corner.CornerRadius = UDim.new(0, 10)
+
+-- NÚT BẤM VỚI VIỀN ĐỐI LẬP
+local b = Instance.new("TextButton")
+b.Size = UDim2.new(0, 40, 0, 40)
+b.Position = UDim2.new(0, 15, 0.5, -20)
+b.BackgroundColor3 = Color3.new(0, 1, 0) -- Mặc định Xanh
+b.Text = ""
+b.Parent = f
+
+local bCorner = Instance.new("UICorner", b)
+bCorner.CornerRadius = UDim.new(1, 0)
+
+-- TẠO VIỀN (STROKE)
+local stroke = Instance.new("UIStroke")
+stroke.Thickness = 3
+stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+stroke.Color = Color3.new(1, 0, 0) -- Mặc định viền Đỏ
+stroke.Parent = b
+
+local t = Instance.new("TextLabel")
+t.Size = UDim2.new(0, 100, 0, 40)
+t.Position = UDim2.new(0, 60, 0.5, -20)
+t.Text = "Vũ Khoa Fix Lag\nFPS: ..."
+t.TextColor3 = Color3.new(1, 1, 1)
+t.BackgroundTransparency = 1
+t.TextSize = 13
+t.Font = Enum.Font.SourceSansBold
+t.Parent = f
+
+-- 3. LOG
