@@ -1,14 +1,15 @@
--- VUKHOA FIX LAG: GHOST MAP - BLUE BORDER FRAME EDITION
+-- VUKHOA FIX LAG: CYBORG V4 & NO DAMAGE EDITION
 local p = game.Players.LocalPlayer
 local pgui = p:WaitForChild("PlayerGui")
 local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
 
 -- 1. XÓA UI CŨ
-if pgui:FindFirstChild("VuKhoa_Classic") then pgui.VuKhoa_Classic:Destroy() end
+if pgui:FindFirstChild("VuKhoa_Extreme_Final") then pgui.VuKhoa_Extreme_Final:Destroy() end
 
--- 2. TẠO GIAO DIỆN (CÓ VIỀN XANH DƯƠNG BAO QUANH KHUNG CHÍNH)
+-- 2. TẠO GIAO DIỆN
 local sg = Instance.new("ScreenGui", pgui)
-sg.Name = "VuKhoa_Classic"
+sg.Name = "VuKhoa_Extreme_Final"
 sg.ResetOnSpawn = false
 sg.IgnoreGuiInset = true
 
@@ -19,32 +20,24 @@ f.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 f.BackgroundTransparency = 0.2
 f.Active = true
 f.Draggable = true
+Instance.new("UICorner", f).CornerRadius = UDim.new(0, 12)
 
-local fCorner = Instance.new("UICorner", f)
-fCorner.CornerRadius = UDim.new(0, 12)
-
--- VIỀN XANH DƯƠNG BAO QUANH TOÀN BỘ UI
 local fStroke = Instance.new("UIStroke", f)
 fStroke.Thickness = 2
-fStroke.Color = Color3.fromRGB(0, 120, 255) -- Màu xanh dương
+fStroke.Color = Color3.fromRGB(0, 120, 255)
 fStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
--- NÚT BẤM TRÒN BÊN TRÁI
 local b = Instance.new("TextButton", f)
 b.Size = UDim2.new(0, 45, 0, 45)
 b.Position = UDim2.new(0, 12, 0.5, -22.5) 
-b.BackgroundColor3 = Color3.new(0, 1, 0) -- ON
+b.BackgroundColor3 = Color3.new(0, 1, 0)
 b.Text = ""
+Instance.new("UICorner", b).CornerRadius = UDim.new(1, 0)
 
-local bCorner = Instance.new("UICorner", b)
-bCorner.CornerRadius = UDim.new(1, 0)
-
--- VIỀN ĐỐI LẬP CHO NÚT BẤM
 local bStroke = Instance.new("UIStroke", b)
 bStroke.Thickness = 3
-bStroke.Color = Color3.new(1, 0, 0) -- Viền Đỏ khi nút Xanh
+bStroke.Color = Color3.new(1, 0, 0)
 
--- PHẦN CHỮ BÊN PHẢI
 local tTitle = Instance.new("TextLabel", f)
 tTitle.Size = UDim2.new(0, 100, 0, 20)
 tTitle.Position = UDim2.new(0, 65, 0.25, 0)
@@ -58,14 +51,14 @@ tTitle.TextXAlignment = Enum.TextXAlignment.Left
 local tFps = Instance.new("TextLabel", f)
 tFps.Size = UDim2.new(0, 100, 0, 20)
 tFps.Position = UDim2.new(0, 65, 0.55, 0)
-tFps.Text = "FPS: Đang tính..."
+tFps.Text = "FPS: ..."
 tFps.TextColor3 = Color3.new(1, 1, 1)
 tFps.BackgroundTransparency = 1
 tFps.Font = Enum.Font.SourceSansBold
 tFps.TextSize = 16
 tFps.TextXAlignment = Enum.TextXAlignment.Left
 
--- 3. LOGIC FPS (CẬP NHẬT 1 GIÂY / LẦN)
+-- 3. LOGIC FPS
 local frameCount = 0
 task.spawn(function()
     while true do
@@ -76,56 +69,77 @@ task.spawn(function()
 end)
 RunService.RenderStepped:Connect(function() frameCount = frameCount + 1 end)
 
--- 4. LOGIC FIX LAG & AUTO CHECK
+-- 4. HÀM TỐI ƯU SIÊU CẤP (XÓA CYBORG V4 & DAME)
 local active = false
 
-local function ApplyFix(v)
+local function CleanAll(v)
     if not active then return end
     pcall(function()
-        if v:IsA("BasePart") and not v:IsDescendantOf(p.Character) then
-            local isNPC = v.Parent:FindFirstChild("Humanoid") or (v.Parent.Parent and v.Parent.Parent:FindFirstChild("Humanoid"))
-            if not isNPC then
+        -- XÓA TIA ĐIỆN CYBORG V4 (VÀ CÁC HIỆU ỨNG TƯƠNG TỰ)
+        local n = v.Name:lower()
+        if n:find("lightning") or n:find("electric") or n:find("cyborg") or n:find("v4") or v:IsA("Beam") then
+            if v:IsA("ParticleEmitter") or v:IsA("Beam") or v:IsA("Trail") then
+                v.Enabled = false
+                v:Destroy()
+                return
+            end
+        end
+
+        -- XÓA SỐ SÁT THƯƠNG RƠI
+        if v.Name == "DamageCounter" or v.Name == "Damage" or v:IsA("BillboardGui") then
+            v:Destroy()
+            return
+        end
+
+        -- ẨN ĐẢO, NGƯỜI CHƠI, QUÁI (GHOST MODE)
+        if v:IsA("BasePart") then
+            if not v:IsDescendantOf(p.Character) then
                 v.Transparency = 1
                 v.CastShadow = false
             end
-        elseif v:IsA("Decal") or v:IsA("Texture") or v:IsA("ParticleEmitter") then
-            if not v:IsDescendantOf(p.Character) then v.Enabled = false end
+        elseif v:IsA("Decal") or v:IsA("Texture") then
+            v.Enabled = false
+            v.Transparency = 1
         end
     end)
 end
 
-workspace.DescendantAdded:Connect(function(v) if active then ApplyFix(v) end end)
+-- 5. LẮNG NGHE & QUÉT ĐỊNH KỲ
+workspace.DescendantAdded:Connect(function(v) if active then CleanAll(v) end end)
+pgui.DescendantAdded:Connect(function(v) if active then CleanAll(v) end end)
 
 task.spawn(function()
     while true do
         if active then
-            for _, v in pairs(workspace:GetDescendants()) do
-                if v:IsA("BasePart") and v.Transparency < 1 then ApplyFix(v) end
+            for _, v in pairs(workspace:GetDescendants()) do 
+                -- Quét liên tục để diệt tia điện và số sát thương phát sinh
+                if v.Name == "DamageCounter" or v:IsA("Beam") or v.Name:lower():find("lightning") then 
+                    CleanAll(v) 
+                end
             end
         end
-        task.wait(2)
+        task.wait(1.5)
     end
 end)
 
--- 5. CLICK ĐỔI MÀU NÚT & VIỀN ĐỐI LẬP (KHÔNG ĐỔI VIỀN KHUNG NGOÀI)
+-- 6. CLICK TOGGLE
 b.MouseButton1Click:Connect(function()
     active = not active
+    b.BackgroundColor3 = active and Color3.new(0, 1, 0) or Color3.new(1, 0, 0)
+    bStroke.Color = active and Color3.new(1, 0, 0) or Color3.new(0, 1, 0)
+    
     if active then
-        b.BackgroundColor3 = Color3.new(0, 1, 0)
-        bStroke.Color = Color3.new(1, 0, 0)
-        for _, v in pairs(workspace:GetDescendants()) do ApplyFix(v) end
+        Lighting.GlobalShadows = false
+        Lighting.Brightness = 0
+        local terrain = workspace:FindFirstChildOfClass("Terrain")
+        if terrain then terrain.WaterTransparency = 1 end
+        for _, v in pairs(workspace:GetDescendants()) do CleanAll(v) end
     else
-        b.BackgroundColor3 = Color3.new(1, 0, 0)
-        bStroke.Color = Color3.new(0, 1, 0)
-        pcall(function()
-            for _, v in pairs(workspace:GetDescendants()) do
-                if v:IsA("BasePart") and not v:IsDescendantOf(p.Character) then v.Transparency = 0 end
-            end
-        end)
+        Lighting.Brightness = 1
     end
 end)
 
--- 6. AUTO MARINE & START
+-- 7. AUTO START
 task.spawn(function()
     local r = game:GetService("ReplicatedStorage")
     while not p.Team or p.Team.Name ~= "Marines" do
@@ -136,5 +150,5 @@ task.spawn(function()
     active = true
     b.BackgroundColor3 = Color3.new(0, 1, 0)
     bStroke.Color = Color3.new(1, 0, 0)
-    for _, v in pairs(workspace:GetDescendants()) do ApplyFix(v) end
+    for _, v in pairs(workspace:GetDescendants()) do CleanAll(v) end
 end)
