@@ -1,154 +1,38 @@
--- VUKHOA FIX LAG: CYBORG V4 & NO DAMAGE EDITION
+-- VUKHOA FIX LAG: LITE & SMOOTH VERSION
 local p = game.Players.LocalPlayer
-local pgui = p:WaitForChild("PlayerGui")
-local RunService = game:GetService("RunService")
 local Lighting = game:GetService("Lighting")
 
--- 1. XÓA UI CŨ
-if pgui:FindFirstChild("VuKhoa_Extreme_Final") then pgui.VuKhoa_Extreme_Final:Destroy() end
+-- TỐI ƯU HÓA SETTING CỦA ROBLOX TRỰC TIẾP QUA SCRIPT
+settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+Lighting.GlobalShadows = false
+Lighting.FogEnd = 9e9
 
--- 2. TẠO GIAO DIỆN
-local sg = Instance.new("ScreenGui", pgui)
-sg.Name = "VuKhoa_Extreme_Final"
-sg.ResetOnSpawn = false
-sg.IgnoreGuiInset = true
+local active = true -- Mặc định bật luôn để giảm bước quét
 
-local f = Instance.new("Frame", sg)
-f.Size = UDim2.new(0, 180, 0, 75)
-f.Position = UDim2.new(0.5, -90, 0.15, 0)
-f.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-f.BackgroundTransparency = 0.2
-f.Active = true
-f.Draggable = true
-Instance.new("UICorner", f).CornerRadius = UDim.new(0, 12)
-
-local fStroke = Instance.new("UIStroke", f)
-fStroke.Thickness = 2
-fStroke.Color = Color3.fromRGB(0, 120, 255)
-fStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-
-local b = Instance.new("TextButton", f)
-b.Size = UDim2.new(0, 45, 0, 45)
-b.Position = UDim2.new(0, 12, 0.5, -22.5) 
-b.BackgroundColor3 = Color3.new(0, 1, 0)
-b.Text = ""
-Instance.new("UICorner", b).CornerRadius = UDim.new(1, 0)
-
-local bStroke = Instance.new("UIStroke", b)
-bStroke.Thickness = 3
-bStroke.Color = Color3.new(1, 0, 0)
-
-local tTitle = Instance.new("TextLabel", f)
-tTitle.Size = UDim2.new(0, 100, 0, 20)
-tTitle.Position = UDim2.new(0, 65, 0.25, 0)
-tTitle.Text = "Vũ Khoa Fix Lag"
-tTitle.TextColor3 = Color3.new(0, 1, 1)
-tTitle.BackgroundTransparency = 1
-tTitle.Font = Enum.Font.SourceSansBold
-tTitle.TextSize = 14
-tTitle.TextXAlignment = Enum.TextXAlignment.Left
-
-local tFps = Instance.new("TextLabel", f)
-tFps.Size = UDim2.new(0, 100, 0, 20)
-tFps.Position = UDim2.new(0, 65, 0.55, 0)
-tFps.Text = "FPS: ..."
-tFps.TextColor3 = Color3.new(1, 1, 1)
-tFps.BackgroundTransparency = 1
-tFps.Font = Enum.Font.SourceSansBold
-tFps.TextSize = 16
-tFps.TextXAlignment = Enum.TextXAlignment.Left
-
--- 3. LOGIC FPS
-local frameCount = 0
-task.spawn(function()
-    while true do
-        tFps.Text = "FPS: " .. frameCount
-        frameCount = 0
-        task.wait(1)
-    end
-end)
-RunService.RenderStepped:Connect(function() frameCount = frameCount + 1 end)
-
--- 4. HÀM TỐI ƯU SIÊU CẤP (XÓA CYBORG V4 & DAME)
-local active = false
-
-local function CleanAll(v)
-    if not active then return end
+local function SmoothHide(v)
     pcall(function()
-        -- XÓA TIA ĐIỆN CYBORG V4 (VÀ CÁC HIỆU ỨNG TƯƠNG TỰ)
-        local n = v.Name:lower()
-        if n:find("lightning") or n:find("electric") or n:find("cyborg") or n:find("v4") or v:IsA("Beam") then
-            if v:IsA("ParticleEmitter") or v:IsA("Beam") or v:IsA("Trail") then
-                v.Enabled = false
-                v:Destroy()
-                return
-            end
-        end
-
-        -- XÓA SỐ SÁT THƯƠNG RƠI
-        if v.Name == "DamageCounter" or v.Name == "Damage" or v:IsA("BillboardGui") then
-            v:Destroy()
-            return
-        end
-
-        -- ẨN ĐẢO, NGƯỜI CHƠI, QUÁI (GHOST MODE)
-        if v:IsA("BasePart") then
-            if not v:IsDescendantOf(p.Character) then
-                v.Transparency = 1
-                v.CastShadow = false
-            end
-        elseif v:IsA("Decal") or v:IsA("Texture") then
-            v.Enabled = false
+        if v:IsA("BasePart") and not v:IsDescendantOf(p.Character) then
             v.Transparency = 1
+            v.CastShadow = false
+            -- Tắt va chạm hình ảnh (không phải va chạm vật lý) để nhẹ hơn
+            if v:IsA("MeshPart") then v.RenderFidelity = Enum.RenderFidelity.Performance end
+        elseif v:IsA("Decal") or v:IsA("Texture") or v:IsA("ParticleEmitter") then
+            v.Enabled = false
         end
     end)
 end
 
--- 5. LẮNG NGHE & QUÉT ĐỊNH KỲ
-workspace.DescendantAdded:Connect(function(v) if active then CleanAll(v) end end)
-pgui.DescendantAdded:Connect(function(v) if active then CleanAll(v) end end)
-
+-- Chỉ quét 5 giây một lần thay vì quét liên tục để tránh giật máy
 task.spawn(function()
-    while true do
+    while task.wait(5) do
         if active then
-            for _, v in pairs(workspace:GetDescendants()) do 
-                -- Quét liên tục để diệt tia điện và số sát thương phát sinh
-                if v.Name == "DamageCounter" or v:IsA("Beam") or v.Name:lower():find("lightning") then 
-                    CleanAll(v) 
+            for _, v in pairs(workspace:GetDescendants()) do
+                if v:IsA("BasePart") and v.Transparency < 1 then
+                    SmoothHide(v)
                 end
             end
         end
-        task.wait(1.5)
     end
 end)
 
--- 6. CLICK TOGGLE
-b.MouseButton1Click:Connect(function()
-    active = not active
-    b.BackgroundColor3 = active and Color3.new(0, 1, 0) or Color3.new(1, 0, 0)
-    bStroke.Color = active and Color3.new(1, 0, 0) or Color3.new(0, 1, 0)
-    
-    if active then
-        Lighting.GlobalShadows = false
-        Lighting.Brightness = 0
-        local terrain = workspace:FindFirstChildOfClass("Terrain")
-        if terrain then terrain.WaterTransparency = 1 end
-        for _, v in pairs(workspace:GetDescendants()) do CleanAll(v) end
-    else
-        Lighting.Brightness = 1
-    end
-end)
-
--- 7. AUTO START
-task.spawn(function()
-    local r = game:GetService("ReplicatedStorage")
-    while not p.Team or p.Team.Name ~= "Marines" do
-        pcall(function() r.Remotes.CommF_:InvokeServer("SetTeam", "Marines") end)
-        task.wait(0.5)
-    end
-    task.wait(1.8)
-    active = true
-    b.BackgroundColor3 = Color3.new(0, 1, 0)
-    bStroke.Color = Color3.new(1, 0, 0)
-    for _, v in pairs(workspace:GetDescendants()) do CleanAll(v) end
-end)
+print("Đã kích hoạt chế độ siêu mượt!")
