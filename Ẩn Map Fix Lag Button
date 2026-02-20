@@ -1,117 +1,131 @@
--- VUKHOA FIX LAG: GHOST MAP - COLOR BORDER EDITION
+-- VUKHOA FIX LAG: GHOST MAP - BLUE BORDER FRAME EDITION
 local p = game.Players.LocalPlayer
 local pgui = p:WaitForChild("PlayerGui")
 local RunService = game:GetService("RunService")
 
 -- 1. XÓA UI CŨ
-if pgui:FindFirstChild("VuKhoa_GhostMode") then pgui.VuKhoa_GhostMode:Destroy() end
+if pgui:FindFirstChild("VuKhoa_Classic") then pgui.VuKhoa_Classic:Destroy() end
 
--- 2. TẠO GIAO DIỆN
-local sg = Instance.new("ScreenGui")
-sg.Name = "VuKhoa_GhostMode"
+-- 2. TẠO GIAO DIỆN (CÓ VIỀN XANH DƯƠNG BAO QUANH KHUNG CHÍNH)
+local sg = Instance.new("ScreenGui", pgui)
+sg.Name = "VuKhoa_Classic"
 sg.ResetOnSpawn = false
 sg.IgnoreGuiInset = true
-sg.Parent = pgui
 
-local f = Instance.new("Frame")
-f.Size = UDim2.new(0, 160, 0, 70)
-f.Position = UDim2.new(0.5, -80, 0.15, 0)
-f.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-f.BackgroundTransparency = 0.3
+local f = Instance.new("Frame", sg)
+f.Size = UDim2.new(0, 180, 0, 75)
+f.Position = UDim2.new(0.5, -90, 0.15, 0)
+f.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+f.BackgroundTransparency = 0.2
 f.Active = true
 f.Draggable = true
-f.Parent = sg
 
-local corner = Instance.new("UICorner", f)
-corner.CornerRadius = UDim.new(0, 10)
+local fCorner = Instance.new("UICorner", f)
+fCorner.CornerRadius = UDim.new(0, 12)
 
--- NÚT BẤM VỚI VIỀN ĐỐI LẬP
-local b = Instance.new("TextButton")
-b.Size = UDim2.new(0, 40, 0, 40)
-b.Position = UDim2.new(0, 15, 0.5, -20)
-b.BackgroundColor3 = Color3.new(0, 1, 0) -- Mặc định Xanh
+-- VIỀN XANH DƯƠNG BAO QUANH TOÀN BỘ UI
+local fStroke = Instance.new("UIStroke", f)
+fStroke.Thickness = 2
+fStroke.Color = Color3.fromRGB(0, 120, 255) -- Màu xanh dương
+fStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+-- NÚT BẤM TRÒN BÊN TRÁI
+local b = Instance.new("TextButton", f)
+b.Size = UDim2.new(0, 45, 0, 45)
+b.Position = UDim2.new(0, 12, 0.5, -22.5) 
+b.BackgroundColor3 = Color3.new(0, 1, 0) -- ON
 b.Text = ""
-b.Parent = f
 
 local bCorner = Instance.new("UICorner", b)
 bCorner.CornerRadius = UDim.new(1, 0)
 
--- TẠO VIỀN (STROKE)
-local stroke = Instance.new("UIStroke")
-stroke.Thickness = 3
-stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-stroke.Color = Color3.new(1, 0, 0) -- Mặc định viền Đỏ
-stroke.Parent = b
+-- VIỀN ĐỐI LẬP CHO NÚT BẤM
+local bStroke = Instance.new("UIStroke", b)
+bStroke.Thickness = 3
+bStroke.Color = Color3.new(1, 0, 0) -- Viền Đỏ khi nút Xanh
 
-local t = Instance.new("TextLabel")
-t.Size = UDim2.new(0, 100, 0, 40)
-t.Position = UDim2.new(0, 60, 0.5, -20)
-t.Text = "Vũ Khoa Fix Lag\nFPS: ..."
-t.TextColor3 = Color3.new(1, 1, 1)
-t.BackgroundTransparency = 1
-t.TextSize = 13
-t.Font = Enum.Font.SourceSansBold
-t.Parent = f
+-- PHẦN CHỮ BÊN PHẢI
+local tTitle = Instance.new("TextLabel", f)
+tTitle.Size = UDim2.new(0, 100, 0, 20)
+tTitle.Position = UDim2.new(0, 65, 0.25, 0)
+tTitle.Text = "Vũ Khoa Fix Lag"
+tTitle.TextColor3 = Color3.new(0, 1, 1)
+tTitle.BackgroundTransparency = 1
+tTitle.Font = Enum.Font.SourceSansBold
+tTitle.TextSize = 14
+tTitle.TextXAlignment = Enum.TextXAlignment.Left
 
--- 3. LOGIC ẨN MAP
-local active = true
+local tFps = Instance.new("TextLabel", f)
+tFps.Size = UDim2.new(0, 100, 0, 20)
+tFps.Position = UDim2.new(0, 65, 0.55, 0)
+tFps.Text = "FPS: Đang tính..."
+tFps.TextColor3 = Color3.new(1, 1, 1)
+tFps.BackgroundTransparency = 1
+tFps.Font = Enum.Font.SourceSansBold
+tFps.TextSize = 16
+tFps.TextXAlignment = Enum.TextXAlignment.Left
 
-local function SetInvisible(v)
+-- 3. LOGIC FPS (CẬP NHẬT 1 GIÂY / LẦN)
+local frameCount = 0
+task.spawn(function()
+    while true do
+        tFps.Text = "FPS: " .. frameCount
+        frameCount = 0
+        task.wait(1)
+    end
+end)
+RunService.RenderStepped:Connect(function() frameCount = frameCount + 1 end)
+
+-- 4. LOGIC FIX LAG & AUTO CHECK
+local active = false
+
+local function ApplyFix(v)
     if not active then return end
     pcall(function()
         if v:IsA("BasePart") and not v:IsDescendantOf(p.Character) then
-            -- Giữ lại quái/NPC
             local isNPC = v.Parent:FindFirstChild("Humanoid") or (v.Parent.Parent and v.Parent.Parent:FindFirstChild("Humanoid"))
             if not isNPC then
                 v.Transparency = 1
                 v.CastShadow = false
             end
         elseif v:IsA("Decal") or v:IsA("Texture") or v:IsA("ParticleEmitter") then
-            v.Enabled = false
+            if not v:IsDescendantOf(p.Character) then v.Enabled = false end
         end
     end)
 end
 
--- Tự động check khi có đảo mới
-workspace.DescendantAdded:Connect(function(v)
-    if active then SetInvisible(v) end
-end)
+workspace.DescendantAdded:Connect(function(v) if active then ApplyFix(v) end end)
 
--- Quét toàn bộ map định kỳ
 task.spawn(function()
     while true do
         if active then
             for _, v in pairs(workspace:GetDescendants()) do
-                if v:IsA("BasePart") and v.Transparency < 1 then SetInvisible(v) end
+                if v:IsA("BasePart") and v.Transparency < 1 then ApplyFix(v) end
             end
         end
         task.wait(2)
     end
 end)
 
--- 4. ĐIỀU KHIỂN & ĐỔI MÀU VIỀN
+-- 5. CLICK ĐỔI MÀU NÚT & VIỀN ĐỐI LẬP (KHÔNG ĐỔI VIỀN KHUNG NGOÀI)
 b.MouseButton1Click:Connect(function()
     active = not active
     if active then
-        b.BackgroundColor3 = Color3.new(0, 1, 0) -- Nút Xanh
-        stroke.Color = Color3.new(1, 0, 0)        -- Viền Đỏ
-        for _, v in pairs(workspace:GetDescendants()) do SetInvisible(v) end
+        b.BackgroundColor3 = Color3.new(0, 1, 0)
+        bStroke.Color = Color3.new(1, 0, 0)
+        for _, v in pairs(workspace:GetDescendants()) do ApplyFix(v) end
     else
-        b.BackgroundColor3 = Color3.new(1, 0, 0) -- Nút Đỏ
-        stroke.Color = Color3.new(0, 1, 0)        -- Viền Xanh
-        -- Hiện lại map
-        for _, v in pairs(workspace:GetDescendants()) do
-            if v:IsA("BasePart") and not v:IsDescendantOf(p.Character) then v.Transparency = 0 end
-        end
+        b.BackgroundColor3 = Color3.new(1, 0, 0)
+        bStroke.Color = Color3.new(0, 1, 0)
+        pcall(function()
+            for _, v in pairs(workspace:GetDescendants()) do
+                if v:IsA("BasePart") and not v:IsDescendantOf(p.Character) then v.Transparency = 0 end
+            end
+        end)
     end
 end)
 
--- FPS Counter
-RunService.RenderStepped:Connect(function(dt)
-    t.Text = "Vũ Khoa Fix Lag\nFPS: " .. math.floor(1/dt)
-end)
-
--- 5. AUTO JOIN MARINE & START
+-- 6. AUTO MARINE & START
 task.spawn(function()
     local r = game:GetService("ReplicatedStorage")
     while not p.Team or p.Team.Name ~= "Marines" do
@@ -119,5 +133,8 @@ task.spawn(function()
         task.wait(0.5)
     end
     task.wait(1.8)
-    for _, v in pairs(workspace:GetDescendants()) do SetInvisible(v) end
+    active = true
+    b.BackgroundColor3 = Color3.new(0, 1, 0)
+    bStroke.Color = Color3.new(1, 0, 0)
+    for _, v in pairs(workspace:GetDescendants()) do ApplyFix(v) end
 end)
