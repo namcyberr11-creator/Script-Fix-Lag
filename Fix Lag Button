@@ -1,112 +1,146 @@
--- VUKHOA FIX LAG: CLASSIC UI - SUPER LIGHT VERSION
+-- VUKHOA GHOST MAP 85% - NO RED BLOCKS EDITION
 local p = game.Players.LocalPlayer
 local pgui = p:WaitForChild("PlayerGui")
 local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
 
 -- 1. XÓA UI CŨ
-if pgui:FindFirstChild("VuKhoa_Classic") then pgui.VuKhoa_Classic:Destroy() end
+if pgui:FindFirstChild("VuKhoa_Ultimate_V3") then pgui.VuKhoa_Ultimate_V3:Destroy() end
 
--- 2. TẠO GIAO DIỆN CŨ (VU KHOA FIX LAG)
+-- 2. TẠO GIAO DIỆN
 local sg = Instance.new("ScreenGui", pgui)
-sg.Name = "VuKhoa_Classic"
+sg.Name = "VuKhoa_Ultimate_V3"
 sg.ResetOnSpawn = false
+sg.IgnoreGuiInset = true
 
 local f = Instance.new("Frame", sg)
-f.Size = UDim2.new(0, 200, 0, 80)
-f.Position = UDim2.new(0.5, -100, 0, 50)
-f.BackgroundColor3 = Color3.new(0, 0, 0)
+f.Size = UDim2.new(0, 180, 0, 75)
+f.Position = UDim2.new(0.5, -90, 0.15, 0)
+f.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 f.BackgroundTransparency = 0.2
 f.Active = true
-f.Draggable = true -- Có thể kéo bảng
+f.Draggable = true
+
+local fCorner = Instance.new("UICorner", f)
+fCorner.CornerRadius = UDim.new(0, 12)
+
+local fStroke = Instance.new("UIStroke", f)
+fStroke.Thickness = 2
+fStroke.Color = Color3.fromRGB(0, 120, 255)
+fStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+local b = Instance.new("TextButton", f)
+b.Size = UDim2.new(0, 45, 0, 45)
+b.Position = UDim2.new(0, 12, 0.5, -22.5)
+b.BackgroundColor3 = Color3.new(0, 1, 0)
+b.Text = ""
+
+local bCorner = Instance.new("UICorner", b)
+bCorner.CornerRadius = UDim.new(1, 0)
+
+local bStroke = Instance.new("UIStroke", b)
+bStroke.Thickness = 3
+bStroke.Color = Color3.new(1, 0, 0)
 
 local t1 = Instance.new("TextLabel", f)
-t1.Size = UDim2.new(0, 120, 0, 30)
-t1.Position = UDim2.new(0, 75, 0, 10)
+t1.Size = UDim2.new(0, 100, 0, 20)
+t1.Position = UDim2.new(0, 65, 0.25, 0)
 t1.Text = "Vũ Khoa Fix Lag"
 t1.TextColor3 = Color3.new(0, 1, 1)
 t1.BackgroundTransparency = 1
-t1.TextSize = 15
 t1.Font = Enum.Font.SourceSansBold
+t1.TextSize = 14
+t1.TextXAlignment = Enum.TextXAlignment.Left
 
 local t2 = Instance.new("TextLabel", f)
-t2.Size = UDim2.new(0, 120, 0, 30)
-t2.Position = UDim2.new(0, 75, 0, 40)
-t2.Text = "FPS: ..."
+t2.Size = UDim2.new(0, 100, 0, 20)
+t2.Position = UDim2.new(0, 65, 0.55, 0)
+t2.Text = "FPS: Đang tính..."
 t2.TextColor3 = Color3.new(1, 1, 1)
 t2.BackgroundTransparency = 1
-t2.TextSize = 17
+t2.Font = Enum.Font.SourceSansBold
+t2.TextSize = 16
+t2.TextXAlignment = Enum.TextXAlignment.Left
 
-local b = Instance.new("TextButton", f)
-b.Size = UDim2.new(0, 60, 0, 60)
-b.Position = UDim2.new(0, 10, 0.5, -30)
-b.BackgroundColor3 = Color3.new(1, 0, 0)
-b.Text = "OFF"
-b.TextColor3 = Color3.new(1, 1, 1)
-b.TextSize = 20
+-- 3. LOGIC FPS (1 GIÂY NHẢY 1 LẦN)
+local frameCount = 0
+task.spawn(function()
+    while true do
+        t2.Text = "FPS: " .. frameCount
+        frameCount = 0
+        task.wait(1)
+    end
+end)
+RunService.RenderStepped:Connect(function() frameCount = frameCount + 1 end)
 
--- 3. HÀM TỐI ƯU SIÊU NHẸ (CHỈ CHẠY 1 LẦN KHI BẬT)
-local active = false
-
-local function ApplyFix()
+-- 4. HÀM NUKE EFFECT (XỬ LÝ CỤC ĐỎ)
+local function NukeEffect(v)
     pcall(function()
-        -- Ẩn nước biển
-        workspace:FindFirstChildOfClass("Terrain").WaterTransparency = active and 1 or 0
-        
-        -- Xóa bầu trời
-        for _, v in pairs(game.Lighting:GetChildren()) do
-            if v:IsA("Sky") or v:IsA("Atmosphere") or v:IsA("Clouds") then
-                v.Parent = active and game.HttpService or game.Lighting
-            end
-        end
-
-        -- Ẩn đảo 90% (Quét 1 lần duy nhất)
-        for _, v in pairs(workspace:GetDescendants()) do
-            if v:IsA("BasePart") and not v:IsDescendantOf(p.Character) then
-                if v:IsDescendantOf(workspace:FindFirstChild("Map")) or v.Name:lower():find("island") then
-                    if v.Name ~= "Base" then
-                        v.Transparency = active and 0.9 or 0
+        if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") or v:IsA("Smoke") or v:IsA("Fire") then
+            v.Enabled = false 
+        elseif v:IsA("Decal") or v:IsA("Texture") then
+            v.Transparency = 1
+        elseif v:IsA("BasePart") or v:IsA("MeshPart") then
+            if not v:IsDescendantOf(p.Character) then
+                local isNPC = v.Parent:FindFirstChild("Humanoid") or (v.Parent.Parent and v.Parent.Parent:FindFirstChild("Humanoid"))
+                
+                -- KIỂM TRA VÀ XÓA CỤC ĐỎ
+                -- Nếu part có màu đỏ thuần hoặc gần đỏ, hoặc tên chứa "Zone" "Red"
+                if not isNPC then
+                    local color = v.Color
+                    if (color.R > 0.7 and color.G < 0.3 and color.B < 0.3) or v.Name:lower():find("red") or v.Name:lower():find("zone") then
+                        v:Destroy() -- Xóa hoàn toàn các cục đỏ gây ngứa mắt
+                        return
                     end
+                    
+                    v.Transparency = 0.85 -- ẨN ĐẢO 85%
+                    v.CastShadow = false
+                    if v:IsA("MeshPart") then v.TextureID = "" end
+                else
+                    v.Transparency = 0
                 end
             end
         end
     end)
 end
 
--- 4. XÓA SÁT THƯƠNG (CƠ CHẾ LẮNG NGHE - KHÔNG LAG)
-workspace.ChildAdded:Connect(function(v)
-    if active and (v.Name == "DamageCounter" or v.Name:find("Damage")) then
-        v:Destroy()
+-- 5. LOGIC TOGGLE
+local active = false
+local function ToggleFix(state)
+    active = state
+    if state then
+        Lighting.GlobalShadows = false
+        for _, v in pairs(workspace:GetDescendants()) do NukeEffect(v) end
+    else
+        for _, v in pairs(workspace:GetDescendants()) do
+            if v:IsA("BasePart") and not v:IsDescendantOf(p.Character) then
+                v.Transparency = 0
+            end
+        end
     end
+end
+
+workspace.DescendantAdded:Connect(function(v)
+    if active then NukeEffect(v) end
 end)
 
-pgui.ChildAdded:Connect(function(v)
-    if active and (v.Name:find("Damage") or v.Name:find("Counter")) then
-        v:Destroy()
-    end
-end)
-
--- 5. LOGIC FPS & CLICK
-RunService.RenderStepped:Connect(function(dt)
-    t2.Text = "FPS: " .. math.floor(1/dt)
-end)
-
+-- 6. CLICK & AUTO START
 b.MouseButton1Click:Connect(function()
     active = not active
-    b.Text = active and "ON" or "OFF"
     b.BackgroundColor3 = active and Color3.new(0, 1, 0) or Color3.new(1, 0, 0)
-    ApplyFix()
+    bStroke.Color = active and Color3.new(1, 0, 0) or Color3.new(0, 1, 0)
+    ToggleFix(active)
 end)
 
--- 6. AUTO MARINE & 1.8S DELAY
 task.spawn(function()
     local r = game:GetService("ReplicatedStorage")
     while not p.Team or p.Team.Name ~= "Marines" do
         pcall(function() r.Remotes.CommF_:InvokeServer("SetTeam", "Marines") end)
         task.wait(0.5)
     end
-    task.wait(1.8) -- Đợi đúng 1.8s
+    task.wait(1.8)
     active = true
-    b.Text = "ON"
     b.BackgroundColor3 = Color3.new(0, 1, 0)
-    ApplyFix()
+    bStroke.Color = Color3.new(1, 0, 0)
+    ToggleFix(true)
 end)
