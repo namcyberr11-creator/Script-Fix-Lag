@@ -1,38 +1,120 @@
--- VUKHOA FIX LAG: LITE & SMOOTH VERSION
+-- VUKHOA ULTIMATE FIX LAG: AUTO ON & REVERSIBLE VERSION
 local p = game.Players.LocalPlayer
+local pgui = p:WaitForChild("PlayerGui")
+local RunService = game:GetService("RunService")
 local Lighting = game:GetService("Lighting")
 
--- TỐI ƯU HÓA SETTING CỦA ROBLOX TRỰC TIẾP QUA SCRIPT
-settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
-Lighting.GlobalShadows = false
-Lighting.FogEnd = 9e9
+-- 1. XÓA UI CŨ
+if pgui:FindFirstChild("VuKhoa_FPS_V5") then pgui.VuKhoa_FPS_V5:Destroy() end
 
-local active = true -- Mặc định bật luôn để giảm bước quét
+-- 2. TẠO GIAO DIỆN UI
+local sg = Instance.new("ScreenGui", pgui)
+sg.Name = "VuKhoa_FPS_V5"
+sg.ResetOnSpawn = false
 
-local function SmoothHide(v)
+local f = Instance.new("Frame", sg)
+f.Size = UDim2.new(0, 160, 0, 90)
+f.Position = UDim2.new(0.5, -80, 0.1, 0)
+f.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+f.Active = true
+f.Draggable = true
+Instance.new("UICorner", f).CornerRadius = UDim.new(0, 10)
+local stroke = Instance.new("UIStroke", f)
+stroke.Color = Color3.fromRGB(0, 150, 255)
+stroke.Thickness = 2
+
+local fpsLabel = Instance.new("TextLabel", f)
+fpsLabel.Size = UDim2.new(1, 0, 0, 30)
+fpsLabel.Position = UDim2.new(0, 0, 0, 5)
+fpsLabel.BackgroundTransparency = 1
+fpsLabel.Text = "FPS: ..."
+fpsLabel.TextColor3 = Color3.new(1, 1, 1)
+fpsLabel.Font = Enum.Font.SourceSansBold
+fpsLabel.TextSize = 20
+
+local b = Instance.new("TextButton", f)
+b.Size = UDim2.new(0, 130, 0, 35)
+b.Position = UDim2.new(0.5, -65, 0.55, 0)
+b.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+b.Text = "FIX LAG: OFF"
+b.TextColor3 = Color3.new(1, 1, 1)
+b.Font = Enum.Font.SourceSansBold
+b.TextSize = 16
+Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
+
+-- 3. LOGIC FPS
+local lastUpdate = tick()
+local frameCount = 0
+RunService.RenderStepped:Connect(function()
+    frameCount = frameCount + 1
+    if tick() - lastUpdate >= 1 then
+        fpsLabel.Text = "FPS: " .. frameCount
+        fpsLabel.TextColor3 = frameCount >= 50 and Color3.new(0, 1, 0) or (frameCount >= 30 and Color3.new(1, 1, 0) or Color3.new(1, 0, 0))
+        frameCount = 0
+        lastUpdate = tick()
+    end
+end)
+
+-- 4. HÀM XỬ LÝ FIX LAG (ẨN/HIỆN)
+local active = false
+
+local function ApplyFix(v, mode)
     pcall(function()
-        if v:IsA("BasePart") and not v:IsDescendantOf(p.Character) then
-            v.Transparency = 1
-            v.CastShadow = false
-            -- Tắt va chạm hình ảnh (không phải va chạm vật lý) để nhẹ hơn
-            if v:IsA("MeshPart") then v.RenderFidelity = Enum.RenderFidelity.Performance end
-        elseif v:IsA("Decal") or v:IsA("Texture") or v:IsA("ParticleEmitter") then
-            v.Enabled = false
+        if mode == true then -- BẬT FIX LAG (ẨN)
+            if v:IsA("BillboardGui") or v.Name:lower():find("damage") or v.Name:lower():find("lightning") then
+                v.Enabled = false 
+            elseif v:IsA("BasePart") and not v:IsDescendantOf(p.Character) then
+                if not v:GetAttribute("OldTransparency") then v:SetAttribute("OldTransparency", v.Transparency) end
+                v.Transparency = 1
+                v.CastShadow = false
+            elseif v:IsA("Decal") or v:IsA("Texture") or v:IsA("ParticleEmitter") then
+                if not v:GetAttribute("OldEnabled") then v:SetAttribute("OldEnabled", v.Enabled) end
+                v.Enabled = false
+            end
+        else -- TẮT FIX LAG (HIỆN LẠI)
+            if v:IsA("BasePart") and not v:IsDescendantOf(p.Character) then
+                v.Transparency = v:GetAttribute("OldTransparency") or 0
+                v.CastShadow = true
+            elseif v:IsA("Decal") or v:IsA("Texture") or v:IsA("ParticleEmitter") then
+                v.Enabled = true
+            elseif v:IsA("BillboardGui") then
+                v.Enabled = true
+            end
         end
     end)
 end
 
--- Chỉ quét 5 giây một lần thay vì quét liên tục để tránh giật máy
-task.spawn(function()
-    while task.wait(5) do
-        if active then
-            for _, v in pairs(workspace:GetDescendants()) do
-                if v:IsA("BasePart") and v.Transparency < 1 then
-                    SmoothHide(v)
-                end
-            end
+-- 5. CƠ CHẾ TOGGLE
+local function ToggleFix(state)
+    active = state
+    b.Text = active and "FIX LAG: ON" or "FIX LAG: OFF"
+    b.BackgroundColor3 = active and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(200, 0, 0)
+    
+    Lighting.GlobalShadows = not active
+    
+    task.spawn(function()
+        local all = workspace:GetDescendants()
+        for i, v in pairs(all) do
+            ApplyFix(v, active)
+            if i % 150 == 0 then RunService.Heartbeat:Wait() end
         end
-    end
+    end)
+end
+
+b.MouseButton1Click:Connect(function() ToggleFix(not active) end)
+
+workspace.DescendantAdded:Connect(function(v)
+    if active then ApplyFix(v, true) end
 end)
 
-print("Đã kích hoạt chế độ siêu mượt!")
+-- 6. AUTO BẬT SAU 2 GIÂY KHI VÀO GAME (CHỌN PHE XONG)
+task.spawn(function()
+    -- Chờ cho đến khi người chơi đã chọn phe (Team không còn là nil)
+    while not p.Team do task.wait(0.1) end
+    
+    task.wait(2) -- Chờ thêm 2 giây như yêu cầu
+    ToggleFix(true)
+    print("Auto Fix Lag Activated!")
+end)
+
+print("Script Fix Lag V5 Ready!")
