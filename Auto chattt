@@ -1,0 +1,95 @@
+-- VUKHOA AUTO CHAT: HIGH PRECISION 4S
+local p = game.Players.LocalPlayer
+local pgui = p:WaitForChild("PlayerGui")
+local TextChatService = game:GetService("TextChatService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- 1. XÓA UI CŨ
+if pgui:FindFirstChild("VuKhoa_Chat_Precision") then pgui.VuKhoa_Chat_Precision:Destroy() end
+
+-- 2. TẠO GIAO DIỆN
+local sg = Instance.new("ScreenGui", pgui)
+sg.Name = "VuKhoa_Chat_Precision"
+sg.ResetOnSpawn = false
+
+local f = Instance.new("Frame", sg)
+f.Size = UDim2.new(0, 200, 0, 150)
+f.Position = UDim2.new(0.5, -100, 0.2, 0)
+f.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+f.Active = true
+f.Draggable = true
+Instance.new("UICorner", f).CornerRadius = UDim.new(0, 12)
+local stroke = Instance.new("UIStroke", f)
+stroke.Color = Color3.fromRGB(0, 150, 255)
+stroke.Thickness = 2
+
+local tTitle = Instance.new("TextLabel", f)
+tTitle.Size = UDim2.new(1, 0, 0, 30)
+tTitle.Text = "Vũ Khoa Auto Chat (4s)"
+tTitle.TextColor3 = Color3.new(0, 1, 1)
+tTitle.BackgroundTransparency = 1
+tTitle.Font = Enum.Font.SourceSansBold
+tTitle.TextSize = 16
+
+local inputMsg = Instance.new("TextBox", f)
+inputMsg.Size = UDim2.new(0, 180, 0, 45)
+inputMsg.Position = UDim2.new(0.5, -90, 0.25, 0)
+inputMsg.Text = "Cay thue inboxx ngvanbachh17909._"
+inputMsg.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+inputMsg.TextColor3 = Color3.new(1, 1, 1)
+inputMsg.TextWrapped = true
+inputMsg.ClearTextOnFocus = false
+Instance.new("UICorner", inputMsg)
+
+local b = Instance.new("TextButton", f)
+b.Size = UDim2.new(0, 160, 0, 40)
+b.Position = UDim2.new(0.5, -80, 0.65, 0)
+b.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+b.Text = "CHAT: OFF"
+b.TextColor3 = Color3.new(1, 1, 1)
+b.Font = Enum.Font.SourceSansBold
+Instance.new("UICorner", b)
+
+-- 3. HÀM GỬI TIN NHẮN CHUẨN
+local function SendChat(msg)
+    pcall(function()
+        if TextChatService.ChatVersion == Enum.ChatVersion.TextChatService then
+            local channel = TextChatService.TextChannels.RBXGeneral
+            channel:SendAsync(msg)
+        else
+            ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer(msg, "All")
+        end
+    end)
+end
+
+-- 4. LOGIC ĐẾM THỜI GIAN CHÍNH XÁC (SỬ DỤNG TICK)
+local isChatting = false
+local lastChatTick = 0
+local chatDelay = 4 -- Ép cứng 4 giây
+
+b.MouseButton1Click:Connect(function()
+    isChatting = not isChatting
+    b.Text = isChatting and "CHAT: ON" or "CHAT: OFF"
+    b.BackgroundColor3 = isChatting and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(200, 0, 0)
+    if isChatting then lastChatTick = tick() end -- Reset thời gian khi bật
+end)
+
+-- Vòng lặp kiểm tra liên tục để gửi đúng giây
+game:GetService("RunService").Heartbeat:Connect(function()
+    if isChatting then
+        if tick() - lastChatTick >= chatDelay then
+            SendChat(inputMsg.Text)
+            lastChatTick = tick() -- Cập nhật mốc thời gian mới ngay lập tức
+        end
+    end
+end)
+
+-- 5. TỰ ĐỘNG BẬT SAU 2S CHỌN PHE
+task.spawn(function()
+    while not p.Team do task.wait(0.1) end
+    task.wait(2)
+    isChatting = true
+    b.Text = "CHAT: ON"
+    b.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+    lastChatTick = tick()
+end)
